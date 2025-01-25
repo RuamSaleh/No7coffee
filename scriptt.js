@@ -1,67 +1,83 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const crypto = require('crypto');
-const fs = require('fs');
+// إنشاء المفاتيح العامة والخاصة عند تحميل الصفحة
+let publicKey, privateKey;
 
-const app = express();
-app.use(bodyParser.json());
+async function generateKeys() {
+    const keyPair = await window.crypto.subtle.generateKeyPair(
+        {
+            name: "RSA-OAEP",
+            modulusLength: 2048,
+            publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+            hash: { name: "SHA-256" }
+        },
+        true,
+        ["encrypt", "decrypt"]
+    );
 
-// إنشاء المفاتيح العامة والخاصة
-const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
-    modulusLength: 2048,
-    publicKeyEncoding: {
-        type: 'spki',
-        format: 'pem'
-    },
-    privateKeyEncoding: {
-        type: 'pkcs8',
-        format: 'pem'
+    publicKey = keyPair.publicKey;
+    privateKey = keyPair.privateKey;
+    console.log("Public and private keys generated.");
+}
+
+generateKeys();
+
+// دالة لتشفير البيانات
+async function encryptData(data) {
+    const encoder = new TextEncoder();
+    const encodedData = encoder.encode(data);
+
+    const encryptedData = await window.crypto.subtle.encrypt(
+        {
+            name: "RSA-OAEP",
+        },
+        publicKey,
+        encodedData
+    );
+
+    return btoa(String.fromCharCode(...new Uint8Array(encryptedData))); // تحويل البيانات إلى Base64
+}
+
+// دالة لفك تشفير البيانات
+async function decryptData(encryptedData) {
+    const decodedData = atob(encryptedData);
+    const buffer = new Uint8Array(decodedData.split("").map(char => char.charCodeAt(0)));
+
+    const decryptedData = await window.crypto.subtle.decrypt(
+        {
+            name: "RSA-OAEP",
+        },
+        privateKey,
+        buffer
+    );
+
+    return new TextDecoder().decode(decryptedData); // تحويل البيانات إلى نص
+}
+
+// حدث عند تسجيل الدخول
+document.getElementById('signinForm').addEventListener('submit', async function (event) {
+    event.preventDefault(); // منع إعادة تحميل الصفحة
+
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+
+    // تشفير البيانات
+    const encryptedEmail = await encryptData(email);
+    const encryptedPassword = await encryptData(password);
+
+    console.log("Encrypted Email:", encryptedEmail);
+    console.log("Encrypted Password:", encryptedPassword);
+
+    // فك تشفير البيانات (للتجربة فقط)
+    const decryptedEmail = await decryptData(encryptedEmail);
+    const decryptedPassword = await decryptData(encryptedPassword);
+
+    console.log("Decrypted Email:", decryptedEmail);
+    console.log("Decrypted Password:", decryptedPassword);
+
+    // التحقق من صحة البيانات المشفرة
+    if (decryptedEmail === "test@example.com" && decryptedPassword === "123456") {
+        alert('تم تسجيل الدخول بنجاح!');
+        window.location.href = "mine_page.html"; // الانتقال إلى الصفحة المطلوبة
+    } else {
+        alert('البريد الإلكتروني أو كلمة المرور غير صحيحة.');
     }
-});
-
-// حفظ المفاتيح في ملفات
-fs.writeFileSync('publicKey.pem', publicKey);
-fs.writeFileSync('privateKey.pem', privateKey);
-
-// إرسال المفتاح العام إلى العميل
-app.get('/getPublicKey', (req, res) => {
-    res.json({
-        kty: 'RSA',
-        e: 'AQAB',
-        n: Buffer.from(publicKey).toString('base64'),
-    });
-});
-
-// استقبال البيانات المشفرة وفك تشفيرها
-app.post('/signin', (req, res) => {
-    const encryptedEmail = Uint8Array.from(req.body.email);
-    const encryptedPassword = Uint8Array.from(req.body.password);
-
-    const decryptedEmail = crypto.privateDecrypt(
-        {
-            key: privateKey,
-            padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-            oaepHash: 'sha256'
-        },
-        Buffer.from(encryptedEmail)
-    );
-
-    const decryptedPassword = crypto.privateDecrypt(
-        {
-            key: privateKey,
-            padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-            oaepHash: 'sha256'
-        },
-        Buffer.from(encryptedPassword)
-    );
-
-    console.log("Decrypted Email:", decryptedEmail.toString());
-    console.log("Decrypted Password:", decryptedPassword.toString());
-
-    // هنا يمكنك إضافة أي تحقق إضافي إذا لزم الأمر
-    res.json({ success: true });
-});
-
-app.listen(3000, () => {
-    console.log('Server is running on port 3000');
 });
