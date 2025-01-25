@@ -33,7 +33,7 @@
                     <a href="#" class="icon"><i class="fa-brands fa-facebook-f"></i></a>
                 </div>
                 <span>or use your email password</span>
-                <input name="email" type="email" id="loginEmail" placeholder="Email" required>
+                <input name="email" type="email" id="loginEmail" placeholder="Email" required oninput="toLowerCaseEmail()">
                 <input name="password" type="password" id="loginPassword" placeholder="Password" required>
                 <a href="#">Forget Your Password?</a>
                 <button type="submit">Sign In</button>
@@ -42,6 +42,12 @@
     </div>
 
     <script>
+        // لتحويل النص المدخل في حقل البريد الإلكتروني إلى جميع الحروف الصغيرة
+        function toLowerCaseEmail() {
+            var emailField = document.getElementById('loginEmail');
+            emailField.value = emailField.value.toLowerCase(); // تحويل النص إلى حروف صغيرة
+        }
+
         async function encryptData(data, publicKey) {
             const encoder = new TextEncoder();
             const encodedData = encoder.encode(data);
@@ -95,9 +101,7 @@
                 password: encryptedPassword,
             });
 
-            // هنا سيتم دائمًا الانتقال إلى الصفحة الرئيسية
-            window.location.href = "mine_page.html";
-            alert("تم تطبيق المفاتيح العامة والخاصة بنجاح!");
+            window.location.href = "mine_page.html";  // تأكد من المسار الصحيح للصفحة
         });
     </script>
 
