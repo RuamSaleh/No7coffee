@@ -33,7 +33,7 @@
                     <a href="#" class="icon"><i class="fa-brands fa-facebook-f"></i></a>
                 </div>
                 <span>or use your email password</span>
-                <input name="email" type="email" id="loginEmail" placeholder="Email" required oninput="toLowerCaseEmail()">
+                <input name="email" type="email" id="loginEmail" placeholder="Email" required>
                 <input name="password" type="password" id="loginPassword" placeholder="Password" required>
                 <a href="#">Forget Your Password?</a>
                 <button type="submit">Sign In</button>
@@ -42,11 +42,11 @@
     </div>
 
     <script>
-        // لتحويل النص المدخل في حقل البريد الإلكتروني إلى جميع الحروف الصغيرة
-        function toLowerCaseEmail() {
+        // تحويل البريد الإلكتروني إلى حروف صغيرة عند إرسال النموذج
+        document.getElementById('signinForm').addEventListener('submit', function (event) {
             var emailField = document.getElementById('loginEmail');
-            emailField.value = emailField.value.toLowerCase(); // تحويل النص إلى حروف صغيرة
-        }
+            emailField.value = emailField.value.toLowerCase();  // تحويل الحروف إلى صغيرة
+        });
 
         async function encryptData(data, publicKey) {
             const encoder = new TextEncoder();
