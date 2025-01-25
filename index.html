@@ -42,66 +42,29 @@
     </div>
 
     <script>
-        // دالة لتشفير البيانات باستخدام المفتاح العام
-        async function encryptData(data, publicKey) {
-            const encoder = new TextEncoder();
-            const encodedData = encoder.encode(data);
-            const encryptedData = await window.crypto.subtle.encrypt(
-                {
-                    name: "RSA-OAEP",
-                },
-                publicKey,
-                encodedData
-            );
-            return Array.from(new Uint8Array(encryptedData));
-        }
-
-        // دالة لإرسال البيانات المشفرة إلى الخادم
-        async function sendEncryptedData(url, data) {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data),
-            });
-            return response.json();
-        }
-
-        // الحصول على المفتاح العام من الخادم
-        async function getPublicKey() {
-            const response = await fetch('/getPublicKey');
-            const publicKey = await response.json();
-            return await window.crypto.subtle.importKey(
-                'jwk',
-                publicKey,
-                {
-                    name: "RSA-OAEP",
-                    hash: { name: "SHA-256" }
-                },
-                true,
-                ['encrypt']
-            );
+        // دالة للتحقق من صحة البريد الإلكتروني وكلمة المرور
+        function validateLogin(email, password) {
+            // هنا يمكنك إضافة التحقق من البريد الإلكتروني وكلمة المرور
+            // على سبيل المثال، إذا كان البريد الإلكتروني وكلمة المرور صحيحين
+            if (email === "test@example.com" && password === "password123") {
+                return true;
+            } else {
+                return false;
+            }
         }
 
         // إضافة حدث للنموذج (Sign In)
-        document.getElementById('signinForm').addEventListener('submit', async function (event) {
+        document.getElementById('signinForm').addEventListener('submit', function (event) {
             event.preventDefault();
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
 
-            const publicKey = await getPublicKey();
-            const encryptedEmail = await encryptData(email, publicKey);
-            const encryptedPassword = await encryptData(password, publicKey);
-
-            const response = await sendEncryptedData('/signin', {
-                email: encryptedEmail,
-                password: encryptedPassword,
-            });
-
-            if (response.success) {
-                window.location.href = "mine_page.html"; // الانتقال إلى الصفحة الرئيسية
+            // التحقق من صحة البريد الإلكتروني وكلمة المرور
+            if (validateLogin(email, password)) {
+                // إذا كانت البيانات صحيحة، انتقل إلى mine_page.html
+                window.location.href = "mine_page.html";
             } else {
+                // إذا كانت البيانات غير صحيحة، عرض رسالة خطأ
                 alert("Invalid email or password!");
             }
         });
