@@ -1,30 +1,6 @@
-// إنشاء المفاتيح العامة والخاصة عند تحميل الصفحة
-let publicKey, privateKey;
-
-async function generateKeys() {
-    const keyPair = await window.crypto.subtle.generateKeyPair(
-        {
-            name: "RSA-OAEP",
-            modulusLength: 2048,
-            publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
-            hash: { name: "SHA-256" }
-        },
-        true,
-        ["encrypt", "decrypt"]
-    );
-
-    publicKey = keyPair.publicKey;
-    privateKey = keyPair.privateKey;
-    console.log("Public and private keys generated.");
-}
-
-generateKeys();
-
-// دالة لتشفير البيانات
-async function encryptData(data) {
+async function encryptData(data, publicKey) {
     const encoder = new TextEncoder();
     const encodedData = encoder.encode(data);
-
     const encryptedData = await window.crypto.subtle.encrypt(
         {
             name: "RSA-OAEP",
@@ -32,47 +8,59 @@ async function encryptData(data) {
         publicKey,
         encodedData
     );
-
-    return btoa(String.fromCharCode(...new Uint8Array(encryptedData))); // تحويل البيانات إلى Base64
+    return Array.from(new Uint8Array(encryptedData));
 }
 
-// دالة لفك تشفير البيانات
-async function decryptData(encryptedData) {
-    const decodedData = atob(encryptedData);
-    const buffer = new Uint8Array(decodedData.split("").map(char => char.charCodeAt(0)));
+async function sendEncryptedData(url, data) {
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+    });
+    return response.json();
+}
 
-    const decryptedData = await window.crypto.subtle.decrypt(
+async function getPublicKey() {
+    const response = await fetch('/getPublicKey');
+    const publicKey = await response.json();
+    return await window.crypto.subtle.importKey(
+        'jwk',
+        publicKey,
         {
             name: "RSA-OAEP",
+            hash: { name: "SHA-256" }
         },
-        privateKey,
-        buffer
+        true,
+        ['encrypt']
     );
-
-    return new TextDecoder().decode(decryptedData); // تحويل البيانات إلى نص
 }
 
-// حدث عند تسجيل الدخول
 document.getElementById('signinForm').addEventListener('submit', async function (event) {
-    event.preventDefault(); // منع إعادة تحميل الصفحة
+    event.preventDefault();
+    
+    try {
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
 
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
+        // الحصول على المفتاح العام
+        const publicKey = await getPublicKey();
 
-    // تشفير البيانات
-    const encryptedEmail = await encryptData(email);
-    const encryptedPassword = await encryptData(password);
+        // تشفير البيانات (حتى لو لم يتم التحقق منها لاحقًا)
+        const encryptedEmail = await encryptData(email, publicKey);
+        const encryptedPassword = await encryptData(password, publicKey);
 
-    console.log("Encrypted Email:", encryptedEmail);
-    console.log("Encrypted Password:", encryptedPassword);
+        // عرض رسالة تفيد بأن العملية تمت
+        alert("تم تطبيق المفاتيح العامة والخاصة بنجاح!");
 
-    // فك تشفير البيانات (للتجربة فقط)
-    const decryptedEmail = await decryptData(encryptedEmail);
-    const decryptedPassword = await decryptData(encryptedPassword);
-
-    console.log("Decrypted Email:", decryptedEmail);
-    console.log("Decrypted Password:", decryptedPassword);
-
+        // الانتقال دائمًا إلى الصفحة المحددة
+        window.location.href = "mine_page.html";
+    } catch (error) {
+        console.error("Error during encryption:", error);
+        alert("حدث خطأ أثناء تطبيق المفاتيح.");
+    }
+});
     // التحقق من صحة البيانات المشفرة
     if (decryptedEmail === "test@example.com" && decryptedPassword === "123456") {
         alert('تم تسجيل الدخول بنجاح!');
