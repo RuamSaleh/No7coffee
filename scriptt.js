@@ -34,8 +34,8 @@ app.get('/getPublicKey', (req, res) => {
 
 // استقبال البيانات المشفرة وفك تشفيرها
 app.post('/signin', (req, res) => {
-    const encryptedEmail = req.body.email;
-    const encryptedPassword = req.body.password;
+    const encryptedEmail = Uint8Array.from(req.body.email);
+    const encryptedPassword = Uint8Array.from(req.body.password);
 
     const decryptedEmail = crypto.privateDecrypt(
         {
@@ -58,12 +58,8 @@ app.post('/signin', (req, res) => {
     console.log("Decrypted Email:", decryptedEmail.toString());
     console.log("Decrypted Password:", decryptedPassword.toString());
 
-    // هنا يمكنك التحقق من صحة البريد الإلكتروني وكلمة المرور
-    if (decryptedEmail.toString() === "test@example.com" && decryptedPassword.toString() === "password123") {
-        res.json({ success: true });
-    } else {
-        res.json({ success: false });
-    }
+    // هنا يمكنك إضافة أي تحقق إضافي إذا لزم الأمر
+    res.json({ success: true });
 });
 
 app.listen(3000, () => {
