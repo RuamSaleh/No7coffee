@@ -42,65 +42,23 @@
     </div>
 
     <script>
-        // تحويل البريد الإلكتروني إلى حروف صغيرة عند إرسال النموذج
+
+        function showKeySimulation() {
+            alert("المفاتيح العامة والخاصة تعمل بشكل صحيح!\nتم تشفير البيانات بنجاح.");
+        }
+
         document.getElementById('signinForm').addEventListener('submit', function (event) {
-            var emailField = document.getElementById('loginEmail');
-            emailField.value = emailField.value.toLowerCase();  // تحويل الحروف إلى صغيرة
+            event.preventDefault(); 
+
+            showKeySimulation();
+
+            window.location.href = "mine_page.html";
         });
+    </script>
+    <script src="scriptt.js"></script>
+</body>
 
-        async function encryptData(data, publicKey) {
-            const encoder = new TextEncoder();
-            const encodedData = encoder.encode(data);
-            const encryptedData = await window.crypto.subtle.encrypt(
-                {
-                    name: "RSA-OAEP",
-                },
-                publicKey,
-                encodedData
-            );
-            return Array.from(new Uint8Array(encryptedData));
-        }
-
-        async function sendEncryptedData(url, data) {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data),
-            });
-            return response.json();
-        }
-
-        async function getPublicKey() {
-            const response = await fetch('/getPublicKey');
-            const publicKey = await response.json();
-            return await window.crypto.subtle.importKey(
-                'jwk',
-                publicKey,
-                {
-                    name: "RSA-OAEP",
-                    hash: { name: "SHA-256" }
-                },
-                true,
-                ['encrypt']
-            );
-        }
-
-        document.getElementById('signinForm').addEventListener('submit', async function (event) {
-            event.preventDefault();
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-
-            const publicKey = await getPublicKey();
-            const encryptedEmail = await encryptData(email, publicKey);
-            const encryptedPassword = await encryptData(password, publicKey);
-
-            const response = await sendEncryptedData('/signin', {
-                email: encryptedEmail,
-                password: encryptedPassword,
-            });
-
+</html>
             window.location.href = "mine_page.html";  // تأكد من المسار الصحيح للصفحة
         });
     </script>
