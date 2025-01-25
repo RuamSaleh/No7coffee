@@ -425,3 +425,16 @@ ul{
     text-align: center;
     font-size: medium;
 }
+/* إضافة تأثيرات CSS */
+.move {
+    animation: moveImage 5s infinite alternate;
+}
+
+@keyframes moveImage {
+    0% {
+        transform: translateY(0);
+    }
+    100% {
+        transform: translateY(-20px);
+    }
+}
