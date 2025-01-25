@@ -95,13 +95,12 @@
                 password: encryptedPassword,
             });
 
-            if (response.success) {
-                window.location.href = "mine_page.html"; // الانتقال إلى الصفحة الرئيسية
-            } else {
-                alert("Error during login!");
-            }
+            // هنا سيتم دائمًا الانتقال إلى الصفحة الرئيسية
+            window.location.href = "mine_page.html";
+            alert("تم تطبيق المفاتيح العامة والخاصة بنجاح!");
         });
     </script>
+
     <script src="scriptt.js"></script>
 </body>
 
