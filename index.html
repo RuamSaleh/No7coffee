@@ -8,61 +8,49 @@
     <link rel="stylesheet" href="style.css">
     <title>Login Page</title>
 </head>
-<header class="header">
 
-    <a href="#" class="logo">
-        <img src="No.7.jpg" alt="مافي صورة">
-    
-    </a>
-    <nav class="navber">
-    
-    <div id="close" class="fas fa-times"></div>
-    
-        <a href="mine_page.html" class="nav_item">HOME</a>
-        <a href="menu.html"class="nav_item">MENU</a>
-        <a href="about.html"class="nav_item">ABOUT</a>
-        <a href="index.html"class="nav_item">LOG IN</a>
-    
-    
-    </nav>
-    
-    <div id="menu" class="fas fa-bars"></div>
-    
-    
-    </header>
 <body>
+    <header class="header">
+        <a href="#" class="logo">
+            <img src="No.7.jpg" alt="مافي صورة">
+        </a>
+        <nav class="navber">
+            <div id="close" class="fas fa-times"></div>
+            <a href="mine_page.html" class="nav_item">HOME</a>
+            <a href="menu.html" class="nav_item">MENU</a>
+            <a href="about.html" class="nav_item">ABOUT</a>
+            <a href="index.html" class="nav_item">LOG IN</a>
+        </nav>
+        <div id="menu" class="fas fa-bars"></div>
+    </header>
 
     <div class="container" id="container">
         <div class="form-container sign-up">
-            <form method="post" action="conn.php" >
+            <form id="signupForm">
                 <h1>Create Account</h1>
                 <div class="social-icons">
                     <a href="#" class="icon"><i class="fa-brands fa-google-plus-g"></i></a>
                     <a href="#" class="icon"><i class="fa-brands fa-facebook-f"></i></a>
-
                 </div>
-                <span>or use your email for registeration</span>
-                <form method="post" action="conn.php">
-                <input name="text" type="text" placeholder="Name">
-                <input name="email" type="email" placeholder="Email">
-                <input name="password"  type="password" placeholder="Password">
-                <button>Sign Up</button>
+                <span>or use your email for registration</span>
+                <input name="text" type="text" id="name" placeholder="Name">
+                <input name="email" type="email" id="email" placeholder="Email">
+                <input name="password" type="password" id="password" placeholder="Password">
+                <button type="submit">Sign Up</button>
             </form>
         </div>
         <div class="form-container sign-in">
-            <form method="post" action="conn.php">
+            <form id="signinForm">
                 <h1>Sign In</h1>
                 <div class="social-icons">
                     <a href="#" class="icon"><i class="fa-brands fa-google-plus-g"></i></a>
                     <a href="#" class="icon"><i class="fa-brands fa-facebook-f"></i></a>
-
                 </div>
                 <span>or use your email password</span>
-                <input name="email" type="email" placeholder="Email">
-                <input name="password"  type="password" placeholder="Password">
+                <input name="email" type="email" id="loginEmail" placeholder="Email">
+                <input name="password" type="password" id="loginPassword" placeholder="Password">
                 <a href="#">Forget Your Password?</a>
-                <a href="mine_page.html" class="btn">Sign In</a>
-
+                <button type="submit">Sign In</button>
             </form>
         </div>
         <div class="toggle-container">
@@ -75,15 +63,86 @@
                 <div class="toggle-panel toggle-right">
                     <h1>Hello, Friend!</h1>
                     <p>Register with your personal details to use all of site features</p>
-                    
-                    <a href="mine_page.html" class="hidden" id="register">Sign Up</a>
-
+                    <button class="hidden" id="register">Sign Up</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="scriptt.js"></script>
+    <script>
+        // دالة لتشفير البيانات باستخدام المفتاح العام
+        async function encryptData(data, publicKey) {
+            const encoder = new TextEncoder();
+            const encodedData = encoder.encode(data);
+            const encryptedData = await window.crypto.subtle.encrypt(
+                {
+                    name: "RSA-OAEP",
+                },
+                publicKey,
+                encodedData
+            );
+            return encryptedData;
+        }
+
+        // دالة لإرسال البيانات المشفرة إلى الخادم
+        async function sendEncryptedData(url, data) {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+            return response.json();
+        }
+
+        // الحصول على المفتاح العام من الخادم
+        async function getPublicKey() {
+            const response = await fetch('/getPublicKey');
+            const publicKey = await response.text();
+            return publicKey;
+        }
+
+        // إضافة حدث للنموذج (Sign Up)
+        document.getElementById('signupForm').addEventListener('submit', async function (event) {
+            event.preventDefault();
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            const publicKey = await getPublicKey();
+            const encryptedName = await encryptData(name, publicKey);
+            const encryptedEmail = await encryptData(email, publicKey);
+            const encryptedPassword = await encryptData(password, publicKey);
+
+            const response = await sendEncryptedData('/signup', {
+                name: encryptedName,
+                email: encryptedEmail,
+                password: encryptedPassword,
+            });
+
+            console.log(response);
+        });
+
+        // إضافة حدث للنموذج (Sign In)
+        document.getElementById('signinForm').addEventListener('submit', async function (event) {
+            event.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            const publicKey = await getPublicKey();
+            const encryptedEmail = await encryptData(email, publicKey);
+            const encryptedPassword = await encryptData(password, publicKey);
+
+            const response = await sendEncryptedData('/signin', {
+                email: encryptedEmail,
+                password: encryptedPassword,
+            });
+
+            console.log(response);
+        });
+    </script>
+    <script src="script.js"></script>
 </body>
 
 </html>
