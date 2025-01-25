@@ -1,64 +1,71 @@
-document.addEventListener("DOMContentLoaded", async () => {
-    // توليد المفتاحين العام والخاص
-    const keyPair = await window.crypto.subtle.generateKey(
+const express = require('express');
+const bodyParser = require('body-parser');
+const crypto = require('crypto');
+const fs = require('fs');
+
+const app = express();
+app.use(bodyParser.json());
+
+// إنشاء المفاتيح العامة والخاصة
+const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
+    modulusLength: 2048,
+    publicKeyEncoding: {
+        type: 'spki',
+        format: 'pem'
+    },
+    privateKeyEncoding: {
+        type: 'pkcs8',
+        format: 'pem'
+    }
+});
+
+// حفظ المفاتيح في ملفات
+fs.writeFileSync('publicKey.pem', publicKey);
+fs.writeFileSync('privateKey.pem', privateKey);
+
+// إرسال المفتاح العام إلى العميل
+app.get('/getPublicKey', (req, res) => {
+    res.json({
+        kty: 'RSA',
+        e: 'AQAB',
+        n: Buffer.from(publicKey).toString('base64'),
+    });
+});
+
+// استقبال البيانات المشفرة وفك تشفيرها
+app.post('/signin', (req, res) => {
+    const encryptedEmail = req.body.email;
+    const encryptedPassword = req.body.password;
+
+    const decryptedEmail = crypto.privateDecrypt(
         {
-            name: "RSA-OAEP",
-            modulusLength: 2048,
-            publicExponent: new Uint8Array([1, 0, 1]),
-            hash: "SHA-256",
+            key: privateKey,
+            padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+            oaepHash: 'sha256'
         },
-        true,
-        ["encrypt", "decrypt"]
+        Buffer.from(encryptedEmail)
     );
 
-    // تصدير المفتاح العام للاستخدام في التشفير
-    const publicKey = await window.crypto.subtle.exportKey("spki", keyPair.publicKey);
+    const decryptedPassword = crypto.privateDecrypt(
+        {
+            key: privateKey,
+            padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+            oaepHash: 'sha256'
+        },
+        Buffer.from(encryptedPassword)
+    );
 
-    // فك التشفير سيكون باستخدام المفتاح الخاص
-    const privateKey = keyPair.privateKey;
+    console.log("Decrypted Email:", decryptedEmail.toString());
+    console.log("Decrypted Password:", decryptedPassword.toString());
 
-    // عند إرسال النموذج
-    const loginForm = document.getElementById("loginForm");
-    loginForm.addEventListener("submit", async (event) => {
-        event.preventDefault(); // منع إعادة تحميل الصفحة
+    // هنا يمكنك التحقق من صحة البريد الإلكتروني وكلمة المرور
+    if (decryptedEmail.toString() === "test@example.com" && decryptedPassword.toString() === "password123") {
+        res.json({ success: true });
+    } else {
+        res.json({ success: false });
+    }
+});
 
-        const username = document.getElementById("username").value;
-        const password = document.getElementById("password").value;
-
-        // تحويل بيانات تسجيل الدخول إلى نص مشفر باستخدام المفتاح العام
-        const encoder = new TextEncoder();
-        const data = encoder.encode(JSON.stringify({ username, password }));
-
-        const encryptedData = await window.crypto.subtle.encrypt(
-            {
-                name: "RSA-OAEP",
-            },
-            keyPair.publicKey,
-            data
-        );
-
-        // عرض البيانات المشفرة في المتصفح (محاكاة إرسالها للخادم)
-        const responseDiv = document.getElementById("response");
-        responseDiv.innerHTML = `
-            <p><strong>Encrypted Data:</strong></p>
-            <textarea rows="5" cols="50">${new Uint8Array(encryptedData)}</textarea>
-        `;
-
-        // محاكاة فك التشفير على الخادم باستخدام المفتاح الخاص
-        const decryptedData = await window.crypto.subtle.decrypt(
-            {
-                name: "RSA-OAEP",
-            },
-            privateKey,
-            encryptedData
-        );
-
-        const decoder = new TextDecoder();
-        const originalData = decoder.decode(decryptedData);
-
-        responseDiv.innerHTML += `
-            <p><strong>Decrypted Data (on server):</strong></p>
-            <textarea rows="5" cols="50">${originalData}</textarea>
-        `;
-    });
+app.listen(3000, () => {
+    console.log('Server is running on port 3000');
 });
